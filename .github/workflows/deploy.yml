@@ -33,10 +33,10 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           AUTH_KEY: ${{ secrets.AUTH_KEY }}
 
-      - name: Debug secrets
-        run: |
-          echo "Token length: ${#CLOUDFLARE_API_TOKEN}"
-          echo "Account ID: $CLOUDFLARE_ACCOUNT_ID"
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # - name: Debug secrets
+      #   run: |
+      #     echo "Token length: ${#CLOUDFLARE_API_TOKEN}"
+      #     echo "Account ID: $CLOUDFLARE_ACCOUNT_ID"
+      #   env:
+      #     CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      #     CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
