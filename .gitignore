@@ -34,11 +34,11 @@ desktop.ini
 *.tmp
 *.temp
 uploads/
-scripts/
 generate-icon.html
 
 # Cloudflare 配置（包含敏感信息）
-wrangler.toml
+# wrangler.toml - 不忽略，但确保不包含敏感数据
+# 注意：实际的 secret 使用 wrangler secret put 设置，不存储在文件中
 
 # 数据库文件（本地开发）
 *.sqlite

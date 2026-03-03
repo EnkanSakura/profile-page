@@ -1,0 +1,38 @@
+# Cloudflare Workers + Pages 混合部署配置
+# 架构：Workers 提供 API + D1 存储 + Pages 托管静态文件
+
+name = "profile-page"
+main = "workers.js"
+compatibility_date = "2024-09-19"
+
+# D1 数据库绑定
+[[d1_databases]]
+binding = "PROFILE_DB"
+database_name = "profile-page-db"
+database_id = "9cff7945-9742-4e5c-90ac-bb83286de74f"
+
+# 环境变量
+[vars]
+ENVIRONMENT = "dev"
+PROFILE_PAGE_TITLE = "EnkanSakura Profile"
+
+# 开发环境配置
+[env.dev]
+name = "profile-page-dev"
+[env.dev.vars]
+ENVIRONMENT = "dev"
+
+# 生产环境配置
+[env.production]
+name = "profile-page-prod"
+[[env.production.d1_databases]]
+binding = "PROFILE_DB"
+database_name = "profile-page-db"
+database_id = "9cff7945-9742-4e5c-90ac-bb83286de74f"
+[env.production.vars]
+ENVIRONMENT = "production"
+
+# 注意：AUTH_KEY 是敏感信息，不要在这里明文存储
+# 使用 wrangler secret 命令设置：
+#   wrangler secret put AUTH_KEY --env production
+#   wrangler secret put AUTH_KEY --env dev
