@@ -6,11 +6,10 @@ main = "workers.js"
 compatibility_date = "2024-09-19"
 
 # D1 数据库绑定
-# 注意：database_id 通过 GitHub Secrets 注入（见 .github/workflows/deploy.yml）
 [[d1_databases]]
 binding = "PROFILE_DB"
 database_name = "profile-page-db"
-database_id = "YOUR_DATABASE_ID_HERE"
+database_id = "9cff7945-9742-4e5c-90ac-bb83286de74f"
 
 # 环境变量
 [vars]
@@ -29,7 +28,7 @@ name = "profile-page-prod"
 [[env.production.d1_databases]]
 binding = "PROFILE_DB"
 database_name = "profile-page-db"
-database_id = "YOUR_DATABASE_ID_HERE"
+database_id = "9cff7945-9742-4e5c-90ac-bb83286de74f"
 [env.production.vars]
 ENVIRONMENT = "production"
 
