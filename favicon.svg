@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <!-- 渐变背景 - 粉色到紫色 -->
+  <defs>
+    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 圆形背景 -->
+  <circle cx="90" cy="90" r="90" fill="url(#iconGrad)"/>
+  
+  <!-- 樱花图标 -->
+  <g fill="white" opacity="0.9">
+    <!-- 五片花瓣 -->
+    <circle cx="90" cy="63" r="14"/>
+    <circle cx="117" cy="81" r="14"/>
+    <circle cx="108" cy="112" r="14"/>
+    <circle cx="72" cy="112" r="14"/>
+    <circle cx="63" cy="81" r="14"/>
+    
+    <!-- 花心 -->
+    <circle cx="90" cy="90" r="11" fill="#fff"/>
+    <circle cx="90" cy="90" r="5" fill="url(#iconGrad)"/>
+  </g>
+</svg>

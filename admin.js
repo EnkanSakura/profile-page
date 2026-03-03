@@ -10,9 +10,19 @@ let isDevEnvironment = false;
 // 页面加载
 document.addEventListener('DOMContentLoaded', function() {
     checkEnvironment();
+    checkAuthToken();
     loadConfig();
     setupEventListeners();
 });
+
+// 检查 Token 是否有效
+function checkAuthToken() {
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
+        // 设置默认 Token
+        localStorage.setItem('adminToken', 'enkansakura');
+    }
+}
 
 // 检查环境
 function checkEnvironment() {
@@ -479,10 +489,14 @@ function saveAllConfig() {
 
         const data = currentConfig[group];
 
+        // 获取存储的 Token
+        const token = localStorage.getItem('adminToken') || 'enkansakura';
+
         fetch('/api/update', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
             },
             body: JSON.stringify({
                 group: group,
@@ -544,6 +558,92 @@ function showNotification(message, type) {
         notification.classList.remove('show');
     }, 3000);
 }
+
+// ============================================
+// Token 管理功能
+// ============================================
+
+// 打开 Token 修改模态框
+function openTokenModal() {
+    document.getElementById('tokenModal').classList.add('show');
+    document.getElementById('currentToken').value = '';
+    document.getElementById('newToken').value = '';
+    document.getElementById('confirmToken').value = '';
+    document.getElementById('confirmStatus').className = 'confirm-status';
+    document.getElementById('confirmStatus').innerHTML = '';
+}
+
+// 关闭 Token 修改模态框
+function closeTokenModal() {
+    document.getElementById('tokenModal').classList.remove('show');
+}
+
+// 验证 Token 一致性
+function checkTokenMatch() {
+    const newToken = document.getElementById('newToken').value;
+    const confirmToken = document.getElementById('confirmToken').value;
+    const confirmStatus = document.getElementById('confirmStatus');
+
+    if (confirmToken.length === 0) {
+        confirmStatus.className = 'confirm-status';
+        confirmStatus.innerHTML = '';
+    } else if (newToken === confirmToken) {
+        confirmStatus.className = 'confirm-status match';
+        confirmStatus.innerHTML = '<i class="fas fa-check-circle"></i> Token 一致';
+    } else {
+        confirmStatus.className = 'confirm-status mismatch';
+        confirmStatus.innerHTML = '<i class="fas fa-times-circle"></i> Token 不一致';
+    }
+}
+
+// 修改 Token
+function changeToken() {
+    const currentToken = document.getElementById('currentToken').value;
+    const newToken = document.getElementById('newToken').value;
+    const confirmToken = document.getElementById('confirmToken').value;
+
+    // 验证输入
+    if (!currentToken || !newToken || !confirmToken) {
+        showNotification('请填写所有字段', 'error');
+        return;
+    }
+
+    if (newToken.length < 6) {
+        showNotification('Token 长度至少为 6 位', 'error');
+        return;
+    }
+
+    if (newToken !== confirmToken) {
+        showNotification('两次输入的新 Token 不一致', 'error');
+        return;
+    }
+
+    // 验证当前 Token
+    const storedToken = localStorage.getItem('adminToken') || 'enkansakura';
+    if (currentToken !== storedToken) {
+        showNotification('当前 Token 错误', 'error');
+        return;
+    }
+
+    // 保存新 Token
+    localStorage.setItem('adminToken', newToken);
+    closeTokenModal();
+    showNotification('Token 已修改成功，请妥善保管', 'success');
+}
+
+// 绑定 Token 匹配检查
+document.addEventListener('DOMContentLoaded', function() {
+    const newTokenInput = document.getElementById('newToken');
+    const confirmTokenInput = document.getElementById('confirmToken');
+
+    if (newTokenInput) {
+        newTokenInput.addEventListener('input', checkTokenMatch);
+    }
+
+    if (confirmTokenInput) {
+        confirmTokenInput.addEventListener('input', checkTokenMatch);
+    }
+});
 
 // 颜色格式转换工具
 function rgbaToHex(rgba) {

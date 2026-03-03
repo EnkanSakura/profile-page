@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>后台管理 - EnkanSakura Profile</title>
+    
+    <!-- 网站图标 -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    
     <link rel="stylesheet" href="admin-styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -13,6 +18,9 @@
             <h1><i class="fas fa-cog"></i> 后台管理</h1>
             <div class="header-actions">
                 <span class="env-indicator" id="envIndicator">DEV</span>
+                <button class="btn btn-token" onclick="openTokenModal()">
+                    <i class="fas fa-key"></i> 认证 Token
+                </button>
                 <button class="btn btn-preview" onclick="window.open('index.html', '_blank')">
                     <i class="fas fa-external-link-alt"></i> 预览页面
                 </button>
@@ -156,6 +164,52 @@
         </main>
 
         <div class="save-notification" id="notification"></div>
+
+        <!-- Token 修改模态框 -->
+        <div class="modal" id="tokenModal">
+            <div class="modal-content token-modal">
+                <div class="modal-header">
+                    <h2><i class="fas fa-key"></i> 认证 Token 设置</h2>
+                </div>
+                <div class="modal-body">
+                    <div class="token-modal-intro">
+                        <i class="fas fa-shield-alt"></i>
+                        <p>Token 用于后台管理权限认证，请妥善保管</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="currentToken"><i class="fas fa-lock"></i> 当前 Token</label>
+                        <input type="password" id="currentToken" placeholder="请输入当前 Token" autocomplete="off" />
+                    </div>
+                    <div class="form-group">
+                        <label for="newToken"><i class="fas fa-key"></i> 新 Token</label>
+                        <input type="password" id="newToken" placeholder="请输入新 Token（至少 6 位）" autocomplete="off" />
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmToken"><i class="fas fa-check-circle"></i> 确认新 Token</label>
+                        <input type="password" id="confirmToken" placeholder="请再次输入新 Token" autocomplete="off" />
+                        <div class="confirm-status" id="confirmStatus"></div>
+                    </div>
+                    <div class="token-tips">
+                        <div class="tip-item">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Token 长度至少 6 位，建议使用强密码</span>
+                        </div>
+                        <div class="tip-item">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>修改后请妥善保管，丢失后需手动重置</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-cancel" onclick="closeTokenModal()">
+                        <i class="fas fa-times"></i> 取消
+                    </button>
+                    <button class="btn btn-save" onclick="changeToken()">
+                        <i class="fas fa-save"></i> 确认修改
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="admin.js"></script>

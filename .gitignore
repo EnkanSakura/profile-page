@@ -35,6 +35,7 @@ desktop.ini
 *.temp
 uploads/
 scripts/
+generate-icon.html
 
 # Cloudflare 配置（包含敏感信息）
 wrangler.toml
