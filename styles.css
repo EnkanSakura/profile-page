@@ -1,0 +1,227 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --card-bg: rgba(255, 255, 255, 0.15);
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.8);
+    --github: rgba(51, 51, 51, 0.8);
+    --twitter: rgba(29, 161, 242, 0.8);
+    --instagram: rgba(225, 48, 108, 0.8);
+    --linkedin: rgba(0, 119, 181, 0.8);
+    --youtube: rgba(255, 0, 0, 0.8);
+    --email: rgba(234, 67, 53, 0.8);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #667eea;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    perspective: 1000px;
+    overflow: hidden;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* 动态背景层 - 支持上传的背景图片 */
+.background-layer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: -1;
+    will-change: transform;
+}
+
+/* 支持 CSS 变量设置背景 */
+body.has-bg-image {
+    background: none;
+}
+
+body.has-bg-image::before {
+    background: rgba(0, 0, 0, var(--bg-overlay-opacity, 0.4));
+}
+
+.container {
+    width: 100%;
+    max-width: 480px;
+    perspective: 1000px;
+}
+
+.profile-card {
+    background: var(--card-bg);
+    border-radius: 24px;
+    padding: 48px 32px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transform-style: preserve-3d;
+    transform: rotateX(0deg) rotateY(0deg);
+    transition: transform 0.1s ease-out;
+}
+
+.profile-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.avatar {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 4px solid white;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    transition: transform 0.3s ease;
+}
+
+.avatar:hover {
+    transform: scale(1.05);
+}
+
+.avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.username {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.bio {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.social-links {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.social-link {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.social-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.social-link:hover::before {
+    opacity: 1;
+}
+
+.social-link:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.social-link i {
+    font-size: 24px;
+    width: 32px;
+    text-align: center;
+}
+
+.footer {
+    margin-top: 40px;
+    text-align: center;
+}
+
+.footer p {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+    .profile-card {
+        padding: 36px 24px;
+    }
+
+    .username {
+        font-size: 24px;
+    }
+
+    .bio {
+        font-size: 14px;
+    }
+
+    .social-link {
+        padding: 14px 18px;
+        font-size: 15px;
+    }
+}
+
+/* 加载动画 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.profile-card {
+    animation: fadeInUp 0.6s ease;
+}
+
+.social-link {
+    animation: fadeInUp 0.6s ease;
+    animation-fill-mode: both;
+}
+
+.social-link:nth-child(1) { animation-delay: 0.1s; }
+.social-link:nth-child(2) { animation-delay: 0.15s; }
+.social-link:nth-child(3) { animation-delay: 0.2s; }
+.social-link:nth-child(4) { animation-delay: 0.25s; }
+.social-link:nth-child(5) { animation-delay: 0.3s; }
+.social-link:nth-child(6) { animation-delay: 0.35s; }

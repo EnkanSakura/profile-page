@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>后台管理 - EnkanSakura Profile</title>
+    <link rel="stylesheet" href="admin-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <h1><i class="fas fa-cog"></i> 后台管理</h1>
+            <div class="header-actions">
+                <span class="env-indicator" id="envIndicator">DEV</span>
+                <button class="btn btn-preview" onclick="window.open('index.html', '_blank')">
+                    <i class="fas fa-external-link-alt"></i> 预览页面
+                </button>
+                <button class="btn btn-save" onclick="saveAllConfig()">
+                    <i class="fas fa-save"></i> 保存全部
+                </button>
+            </div>
+        </header>
+
+        <main class="admin-main">
+            <!-- 基本信息 -->
+            <section class="config-section">
+                <h2><i class="fas fa-user"></i> 基本信息</h2>
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" placeholder="@YourName" />
+                </div>
+                <div class="form-group">
+                    <label for="bio">个人简介</label>
+                    <input type="text" id="bio" placeholder="分享生活 · 记录美好 · 连接世界" />
+                </div>
+                <div class="form-group">
+                    <label>头像 URL 列表</label>
+                    <div id="avatarUrlsContainer" class="avatar-urls-container">
+                        <!-- 动态生成 -->
+                    </div>
+                    <div class="avatar-url-actions">
+                        <button class="btn btn-primary btn-sm" id="addAvatarBtn">
+                            <i class="fas fa-plus"></i> 添加头像
+                        </button>
+                    </div>
+                    <!-- 头像预览图在所有链接后一行展示 -->
+                    <div class="avatar-preview-grid" id="avatarPreviewGrid"></div>
+                </div>
+            </section>
+
+            <!-- 社交链接 -->
+            <section class="config-section">
+                <h2>
+                    <i class="fas fa-link"></i> 社交链接
+                </h2>
+                <div id="socialLinksContainer"></div>
+                <div style="margin-top: 16px;">
+                    <button class="btn btn-primary btn-sm" onclick="addSocialLink()">
+                        <i class="fas fa-plus"></i> 添加链接
+                    </button>
+                </div>
+            </section>
+
+            <!-- 外观设置 -->
+            <section class="config-section">
+                <h2><i class="fas fa-paint-brush"></i> 外观设置</h2>
+                
+                <!-- 背景图片设置 -->
+                <div class="form-group">
+                    <label for="backgroundImage">横屏背景图片 URL</label>
+                    <input type="text" id="backgroundImage" placeholder="https://..." />
+                    <!-- 背景预览图在横屏链接后一行展示 -->
+                    <div class="bg-preview" id="bgPreview"></div>
+                </div>
+                <div class="form-group">
+                    <label for="portraitBackgroundImage">竖屏背景图片 URL</label>
+                    <input type="text" id="portraitBackgroundImage" placeholder="留空则使用横屏背景" />
+                    <!-- 背景预览图在竖屏链接后一行展示 -->
+                    <div class="bg-preview" id="portraitBgPreview"></div>
+                </div>
+                
+                <!-- 透明度设置 -->
+                <div class="form-group">
+                    <label for="overlayOpacity">背景遮罩透明度：<span id="overlayOpacityValue">0.4</span></label>
+                    <input type="range" id="overlayOpacity" min="0" max="1" step="0.05" value="0.4" />
+                </div>
+                <div class="form-group">
+                    <label for="backdropBlur">毛玻璃模糊强度：<span id="backdropBlurValue">10</span>px</label>
+                    <input type="range" id="backdropBlur" min="0" max="30" step="1" value="10" />
+                </div>
+                <div class="form-group">
+                    <label for="cardOpacity">卡片透明度：<span id="cardOpacityValue">0.15</span></label>
+                    <input type="range" id="cardOpacity" min="0" max="1" step="0.05" value="0.15" />
+                </div>
+                
+                <!-- 页脚文字 -->
+                <div class="form-group">
+                    <label for="footer">页脚文字</label>
+                    <input type="text" id="footer" placeholder="© 2026 YourName. All rights reserved." />
+                </div>
+            </section>
+
+            <!-- 动态效果 -->
+            <section class="config-section">
+                <h2><i class="fas fa-magic"></i> 动态效果</h2>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="effectsEnabled" checked />
+                        <span>启用 3D 动态效果</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="rotationIntensity">3D 翻转强度：<span id="rotationIntensityValue">1.0</span></label>
+                    <input type="range" id="rotationIntensity" min="0" max="2" step="0.1" value="1.0" />
+                </div>
+                <div class="form-group">
+                    <label for="parallaxIntensity">背景视差强度：<span id="parallaxIntensityValue">1.0</span></label>
+                    <input type="range" id="parallaxIntensity" min="0" max="2" step="0.1" value="1.0" />
+                </div>
+                <div class="form-group">
+                    <label for="recoveryDuration">恢复时间 (毫秒)：<span id="recoveryDurationValue">500</span></label>
+                    <input type="range" id="recoveryDuration" min="100" max="2000" step="50" value="500" />
+                </div>
+            </section>
+
+            <!-- 安全设置 -->
+            <section class="config-section">
+                <h2><i class="fas fa-shield-alt"></i> 安全设置</h2>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="disableRightClick" checked />
+                        <span>禁止右键菜单</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="disableDevTools" />
+                        <span>禁止开发者工具快捷键（F12, Ctrl+Shift+I/J, Ctrl+U）</span>
+                    </label>
+                </div>
+            </section>
+
+            <!-- 高级操作 -->
+            <section class="config-section">
+                <h2><i class="fas fa-tools"></i> 高级操作</h2>
+                <div class="advanced-actions">
+                    <button class="btn btn-primary" onclick="loadConfig()">
+                        <i class="fas fa-sync"></i> 重新加载配置
+                    </button>
+                    <button class="btn btn-danger" onclick="resetConfig()">
+                        <i class="fas fa-undo"></i> 重置为默认配置
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <div class="save-notification" id="notification"></div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
