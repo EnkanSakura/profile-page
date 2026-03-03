@@ -32,3 +32,4 @@ jobs:
           environment: production
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          AUTH_KEY: ${{ secrets.AUTH_KEY }}

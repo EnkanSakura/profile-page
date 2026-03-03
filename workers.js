@@ -388,7 +388,7 @@ async function verifyAuth(request, env) {
     }
 
     // 获取认证方式配置（默认为 key）
-    const authFunc = env.AUTH_FUNC || 'key';
+    const authFunc = env.AUTH_FUNC;
 
     if (authFunc === 'zerotrust') {
         // Zero Trust 认证模式
@@ -414,13 +414,13 @@ async function verifyAuth(request, env) {
     } else {
         // Token 认证模式（默认）
         const authHeader = request.headers.get('Authorization');
-        
+
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return { valid: false, error: '未授权访问，缺少 Authorization header' };
         }
 
         const token = authHeader.substring(7);
-        const expectedToken = env.AUTH_TOKEN || 'enkansakura';
+        const expectedToken = env.AUTH_KEY;
 
         if (token === expectedToken) {
             return { valid: true, user: 'token-auth' };
