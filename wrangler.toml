@@ -4,8 +4,10 @@
 name = "profile-page"
 main = "workers.js"
 compatibility_date = "2024-09-19"
+workers_dev = true
+preview_urls = false
 
-# D1 数据库绑定
+# D1 数据库绑定（默认配置，本地开发使用 --local 模式）
 [[d1_databases]]
 binding = "PROFILE_DB"
 database_name = "profile-page-db"
@@ -13,26 +15,34 @@ database_id = "9cff7945-9742-4e5c-90ac-bb83286de74f"
 
 # 环境变量
 [vars]
-ENVIRONMENT = "dev"
 PROFILE_PAGE_TITLE = "EnkanSakura Profile"
+ENVIRONMENT = "dev"
 
 # 开发环境配置
 [env.dev]
 name = "profile-page-dev"
+[[env.dev.d1_databases]]
+binding = "PROFILE_DB"
+database_name = "profile-page-db"
+database_id = "9cff7945-9742-4e5c-90ac-bb83286de74f"
 [env.dev.vars]
 ENVIRONMENT = "dev"
 
 # 生产环境配置
 [env.production]
 name = "profile-page-prod"
-[[env.production.d1_databases]]
-binding = "PROFILE_DB"
-database_name = "profile-page-db"
-database_id = "9cff7945-9742-4e5c-90ac-bb83286de74f"
-[env.production.vars]
-ENVIRONMENT = "production"
+workers_dev = true
+    [env.production.route]
+    pattern = "me.enkansakura.top/*"
+    zone_name = "enkansakura.top"
 
-# 注意：AUTH_KEY 是敏感信息，不要在这里明文存储
-# 使用 wrangler secret 命令设置：
-#   wrangler secret put AUTH_KEY --env production
-#   wrangler secret put AUTH_KEY --env dev
+    [[env.production.d1_databases]]
+    binding = "PROFILE_DB"
+    database_name = "profile-page-db"
+    database_id = "9cff7945-9742-4e5c-90ac-bb83286de74f"
+
+    [env.production.vars]
+    ENVIRONMENT = "production"
+    AUTH_FUNC = "key"
+    PROFILE_PAGE_TITLE = "EnkanSakura Profile"
+

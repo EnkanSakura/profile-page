@@ -231,7 +231,7 @@ function addSocialLink() {
     const newLink = {
         name: 'New Link',
         url: 'https://',
-        icon: 'fas fa-link',
+        icon: 'fab fa-link',
         color: 'rgba(102, 126, 234, 0.8)'
     };
     createSocialLinkCard(newLink, currentConfig.socialLinks.length);

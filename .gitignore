@@ -1,6 +1,5 @@
 # 依赖
 node_modules/
-package-lock.json
 
 # 构建产物
 .wrangler/
@@ -49,3 +48,4 @@ wrangler.toml
 
 # 项目特定忽略
 .golutra/
+scripts/

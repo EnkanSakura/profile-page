@@ -1,9 +1,9 @@
-Bilibili-Pink: #FB7299;
-Bilibili-Blue: #23ADE5;
-Steam-Black: #25282e;
-Steam-Blue: #3366ff;
-Twitter-Blue: #1DA1F2;
-X-Black: #000000;
+Bilibili-Pink: #FB7299
+Bilibili-Blue: #23ADE5
+Steam-Black: #25282e
+Steam-Blue: #3366ff
+Twitter-Blue: #1DA1F2
+X-Black: #000000
 Facebook-Blue: #1877F2
 Instagram-Pink: #E1306C
 YouTube-Red: #FF0000

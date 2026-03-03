@@ -4,9 +4,9 @@
   "description": "个人社媒链接展示页 - Cloudflare Workers + D1 版本",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "dev:local": "wrangler dev --local",
-    "db:init": "wrangler d1 execute profile-page-db --local --file=d1-schema.sql",
+    "dev": "wrangler dev --local --persist-to .wrangler/state",
+    "dev:local": "wrangler dev --local --persist-to .wrangler/state",
+    "db:init": "wrangler d1 execute profile-page-db --local --file=d1-schema.sql --persist-to .wrangler/state",
     "db:init:remote": "wrangler d1 execute profile-page-db --remote --file=d1-schema.sql",
     "deploy": "wrangler deploy --env production",
     "deploy:dev": "wrangler deploy --env dev",
