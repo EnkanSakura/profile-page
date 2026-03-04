@@ -29,6 +29,8 @@ ENVIRONMENT = "dev"
 name = "profile-page-prod"
 [env.production.vars]
 ENVIRONMENT = "production"
+AUTH_FUNC = "key"  # 认证方式：key（Token 认证）或 zerotrust（Zero Trust 认证）
+# AUTH_KEY 请通过 GitHub Secrets 或 Cloudflare Dashboard 设置，不要在此明文存储
 
 # 部署说明：
 # 1. 创建 D1 数据库：wrangler d1 create profile-page-db

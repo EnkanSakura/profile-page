@@ -128,18 +128,18 @@ function getAuthConfig(env, url) {
     // 检查是否是 DEV 环境
     const hostname = url.hostname;
     const isDev = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('.dev.');
-    
+
     const authConfig = {
         isDev: isDev,
         authMethod: 'default'
     };
-    
+
     // 读取环境变量配置
-    if (env.AUTH_FUNC === 'key' && env.AUTH_TOKEN) {
+    if (env.AUTH_FUNC === 'key' && env.AUTH_KEY) {
         authConfig.authMethod = 'key';
-        authConfig.token = env.AUTH_TOKEN;
+        authConfig.token = env.AUTH_KEY;
     }
-    
+
     return new Response(JSON.stringify({
         success: true,
         config: authConfig

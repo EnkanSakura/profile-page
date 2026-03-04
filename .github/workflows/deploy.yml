@@ -31,6 +31,7 @@ jobs:
           environment: production
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          AUTH_FUNC: "key"
           AUTH_KEY: ${{ secrets.AUTH_KEY }}
 
       # - name: Debug secrets
