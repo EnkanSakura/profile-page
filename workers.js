@@ -338,8 +338,17 @@ async function getConfigGroup(env, group) {
 // 更新配置
 async function updateConfig(request, env) {
     try {
-        // 鉴权检查（开发环境跳过）
+        // 鉴权检查
         const authResult = await verifyAuth(request, env);
+        if (!authResult.valid) {
+            return new Response(JSON.stringify({
+                success: false,
+                error: authResult.error
+            }), {
+                status: 401,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
 
         const body = await request.json();
         const { group, data, version } = body;
@@ -525,7 +534,7 @@ async function verifyAuth(request, env) {
     }
 
     // 检查是否配置了 AUTH_KEY（Token 认证）
-    const hasAuthKey = !!env.AUTH_KEY && env.AUTH_KEY.length > 0;
+    const hasAuthKey = env.AUTH_FUNC === 'key' && !!env.AUTH_KEY && env.AUTH_KEY.length > 0;
     
     // 检查是否配置了 Zero Trust
     const hasZeroTrust = env.AUTH_FUNC === 'zerotrust';
