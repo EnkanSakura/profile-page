@@ -6,22 +6,61 @@ let originalConfig = {};  // 保存原始配置用于对比
 let avatarUrlInputCount = 0;
 let socialLinkCount = 0;
 let isDevEnvironment = false;
+let devToken = null;  // 从 URL 参数或 API 获取的 token
 
 // 页面加载
 document.addEventListener('DOMContentLoaded', function() {
     checkEnvironment();
-    checkAuthToken();
+    if (!checkAuthToken()) {
+        return;  // 未认证，已跳转
+    }
     loadConfig();
     setupEventListeners();
 });
 
 // 检查 Token 是否有效
 function checkAuthToken() {
-    const token = localStorage.getItem('adminToken');
-    if (!token) {
-        // 设置默认 Token
-        localStorage.setItem('adminToken', 'enkansakura');
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlToken = urlParams.get('token');
+    
+    // 如果 URL 中有 token 参数，直接使用
+    if (urlToken) {
+        devToken = urlToken;
+        // 清除 URL 中的 token 参数
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return true;
     }
+    
+    // 从 API 获取认证配置
+    fetch('/api/auth-config').then(function(r) {
+        if (r.ok) return r.json();
+        return null;
+    }).then(function(data) {
+        if (data && data.success && data.config) {
+            isDevEnvironment = data.config.isDev;
+            if (data.config.authMethod === 'key' && data.config.token) {
+                devToken = data.config.token;
+            } else if (isDevEnvironment) {
+                // DEV 环境且没有 key 认证，从 .dev.env 读取
+                return fetch('/.dev.env').then(function(r) {
+                    if (r.ok) return r.text();
+                    return '';
+                }).then(function(text) {
+                    const match = text.match(/ADMIN_TOKEN=(.+)/);
+                    if (match) {
+                        devToken = match[1].trim();
+                    }
+                });
+            }
+        }
+    }).catch(function() {}).finally(function() {
+        // 检查是否有 token
+        if (!devToken) {
+            window.location.href = '/admin';
+        }
+    });
+    
+    return true;  // 异步检查，先返回 true
 }
 
 // 检查环境
@@ -489,8 +528,8 @@ function saveAllConfig() {
 
         const data = currentConfig[group];
 
-        // 获取存储的 Token
-        const token = localStorage.getItem('adminToken') || 'enkansakura';
+        // 获取 Token（DEV 环境从 .dev.env 读取，PROD 环境使用默认值）
+        const token = devToken || 'enkansakura';
 
         fetch('/api/update', {
             method: 'POST',
@@ -619,16 +658,18 @@ function changeToken() {
     }
 
     // 验证当前 Token
-    const storedToken = localStorage.getItem('adminToken') || 'enkansakura';
+    const storedToken = devToken || 'enkansakura';
     if (currentToken !== storedToken) {
         showNotification('当前 Token 错误', 'error');
         return;
     }
 
-    // 保存新 Token
-    localStorage.setItem('adminToken', newToken);
+    // 修改 Token：通过 URL 参数传递新 token
     closeTokenModal();
-    showNotification('Token 已修改成功，请妥善保管', 'success');
+    showNotification('Token 已修改，正在重新加载...', 'success');
+    setTimeout(function() {
+        window.location.href = '/admin.html?token=' + encodeURIComponent(newToken);
+    }, 1000);
 }
 
 // 绑定 Token 匹配检查

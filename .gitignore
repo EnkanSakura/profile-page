@@ -11,6 +11,7 @@ build/
 .env.local
 .env.*.local
 .dev.vars
+.dev.env
 
 # 日志
 logs/
