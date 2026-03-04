@@ -38,9 +38,13 @@ function checkAuthToken() {
     }).then(function(data) {
         if (data && data.success && data.config) {
             isDevEnvironment = data.config.isDev;
-            // DEV 环境从 API 获取 token 或从.dev.env 读取
-            if (isDevEnvironment) {
-                if (data.config.authMethod === 'key' && data.config.token) {
+            const authMethod = data.config.authMethod;
+            // AUTH_FUNC = 'dev' 时，直接使用默认 token
+            if (authMethod === 'dev' && data.config.token) {
+                devToken = data.config.token;
+            } else if (isDevEnvironment) {
+                // DEV 环境从 API 获取 token 或从.dev.env 读取
+                if (authMethod === 'key' && data.config.token) {
                     devToken = data.config.token;
                 } else {
                     // 从 .dev.env 读取
@@ -534,8 +538,12 @@ function saveAllConfig() {
 
         const data = currentConfig[group];
 
-        // 获取 Token（DEV 环境从 .dev.env 读取，PROD 环境使用默认值）
-        const token = devToken || 'enkansakura';
+        // 获取 Token（从 API 或 URL 参数获取）
+        if (!devToken) {
+            showNotification('未认证，请先登录', 'error');
+            return;
+        }
+        const token = devToken;
 
         fetch('/api/update', {
             method: 'POST',
@@ -664,8 +672,11 @@ function changeToken() {
     }
 
     // 验证当前 Token
-    const storedToken = devToken || 'enkansakura';
-    if (currentToken !== storedToken) {
+    if (!devToken) {
+        showNotification('未获取到 Token，请刷新页面', 'error');
+        return;
+    }
+    if (currentToken !== devToken) {
         showNotification('当前 Token 错误', 'error');
         return;
     }

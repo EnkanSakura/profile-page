@@ -4,6 +4,8 @@
 name = "profile-page"
 main = "workers.js"
 compatibility_date = "2024-09-19"
+workers_dev = true
+preview_urls = false
 
 # D1 数据库绑定
 # 注意：database_id 需要从 Cloudflare Dashboard 获取
@@ -13,24 +15,24 @@ binding = "PROFILE_DB"
 database_name = "profile-page-db"
 database_id = "YOUR_DATABASE_ID_HERE"  # ← 替换为你的数据库 ID
 
-# 环境变量
+# 注意：全局 [vars] 仅在未指定环境时使用
+# 建议使用 [env.xxx.vars] 为不同环境配置独立的变量
 [vars]
-ENVIRONMENT = "dev"
 PROFILE_PAGE_TITLE = "Your Profile Page"
+AUTH_FUNC = "dev"  # 默认使用 dev 模式（本地开发环境直接认证通过）
 
 # 开发环境配置
 [env.dev]
 name = "profile-page-dev"
 [env.dev.vars]
-ENVIRONMENT = "dev"
+AUTH_FUNC = "dev"  # dev 模式：开发环境直接认证通过
 
 # 生产环境配置
 [env.production]
 name = "profile-page-prod"
 [env.production.vars]
-ENVIRONMENT = "production"
-AUTH_FUNC = "key"  # 认证方式：key（Token 认证）或 zerotrust（Zero Trust 认证）
-# AUTH_KEY 请通过 Cloudflare Dashboard 或 GitHub Secrets 设置，不要在此明文存储
+AUTH_FUNC = "key"  # 认证方式：dev（开发模式）| key（Token 认证）| zerotrust（Zero Trust 认证）
+# AUTH_KEY 请通过 Cloudflare Dashboard 或 GitHub Secrets (wrangler secret put) 设置，不要在此明文存储
 
 # 部署说明：
 # 1. 创建 D1 数据库：wrangler d1 create profile-page-db
@@ -38,5 +40,3 @@ AUTH_FUNC = "key"  # 认证方式：key（Token 认证）或 zerotrust（Zero Tr
 # 3. 初始化数据库：wrangler d1 execute profile-page-db --remote --file=d1-schema.sql
 # 4. 部署：wrangler deploy --env production
 
-# 注意：此文件不应包含敏感信息
-# 实际的 wrangler.toml 已在 .gitignore 中忽略

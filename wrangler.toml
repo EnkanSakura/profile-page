@@ -7,31 +7,29 @@ compatibility_date = "2024-09-19"
 workers_dev = true
 preview_urls = false
 
-# D1 数据库绑定（默认配置，本地开发使用 --local 模式）
+# D1 数据库绑定
+# 注意：database_id 需要从 Cloudflare Dashboard 获取
+# 运行：wrangler d1 create profile-page-db
 [[d1_databases]]
 binding = "PROFILE_DB"
 database_name = "profile-page-db"
 database_id = "9cff7945-9742-4e5c-90ac-bb83286de74f"
 
-# 环境变量
+# 注意：全局 [vars] 仅在未指定环境时使用
+# 建议使用 [env.xxx.vars] 为不同环境配置独立的变量
 [vars]
-PROFILE_PAGE_TITLE = "EnkanSakura Profile"
-ENVIRONMENT = "dev"
+PROFILE_PAGE_TITLE = "Your Profile Page"
+AUTH_FUNC = "dev"  # 默认使用 dev 模式（本地开发环境直接认证通过）
 
 # 开发环境配置
 [env.dev]
 name = "profile-page-dev"
-[[env.dev.d1_databases]]
-binding = "PROFILE_DB"
-database_name = "profile-page-db"
-database_id = "9cff7945-9742-4e5c-90ac-bb83286de74f"
 [env.dev.vars]
-ENVIRONMENT = "dev"
+AUTH_FUNC = "dev"  # dev 模式：开发环境直接认证通过
 
 # 生产环境配置
 [env.production]
 name = "profile-page-prod"
-workers_dev = true
     [env.production.route]
     pattern = "me.enkansakura.top/*"
     zone_name = "enkansakura.top"
@@ -42,7 +40,12 @@ workers_dev = true
     database_id = "9cff7945-9742-4e5c-90ac-bb83286de74f"
 
     [env.production.vars]
-    ENVIRONMENT = "production"
-    AUTH_FUNC = "key"
-    PROFILE_PAGE_TITLE = "EnkanSakura Profile"
+    AUTH_FUNC = "key"  # 认证方式：dev（开发模式）| key（Token 认证）| zerotrust（Zero Trust 认证）
+    # AUTH_KEY 请通过 Cloudflare Dashboard 或 GitHub Secrets (wrangler secret put) 设置，不要在此明文存储
+
+# 部署说明：
+# 1. 创建 D1 数据库：wrangler d1 create profile-page-db
+# 2. 复制 database_id 到上方配置
+# 3. 初始化数据库：wrangler d1 execute profile-page-db --remote --file=d1-schema.sql
+# 4. 部署：wrangler deploy --env production
 

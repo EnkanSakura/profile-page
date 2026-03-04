@@ -36,9 +36,6 @@ desktop.ini
 uploads/
 generate-icon.html
 
-# Cloudflare 配置（包含敏感信息）
-wrangler.toml
-
 # 数据库文件（本地开发）
 *.sqlite
 *.db

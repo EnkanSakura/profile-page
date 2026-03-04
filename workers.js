@@ -91,13 +91,28 @@ async function serveDevEnv(env) {
             const response = await ASSETS.fetch('http://localhost/.dev.env');
             if (response.ok) {
                 const text = await response.text();
-                return new Response(text, {
-                    headers: {
-                        'Content-Type': 'text/plain;charset=utf-8',
-                        'Cache-Control': 'no-cache'
-                    }
-                });
+                // 检查是否有有效的 ADMIN_TOKEN
+                const match = text.match(/ADMIN_TOKEN=(.+)/);
+                if (match && match[1].trim()) {
+                    return new Response(text, {
+                        headers: {
+                            'Content-Type': 'text/plain;charset=utf-8',
+                            'Cache-Control': 'no-cache'
+                        }
+                    });
+                }
             }
+        }
+
+        // AUTH_FUNC = 'dev' 时返回默认 token
+        if (env.AUTH_FUNC === 'dev') {
+            const devEnvContent = '# 开发环境配置文件\nADMIN_TOKEN=enkansakura\n';
+            return new Response(devEnvContent, {
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8',
+                    'Cache-Control': 'no-cache'
+                }
+            });
         }
 
         // 开发环境未配置 .dev.env 时，返回空配置
@@ -129,16 +144,18 @@ function getAuthConfig(env, url) {
     const hostname = url.hostname;
     const isDev = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('.dev.');
 
+    // 获取认证方式
+    let authMethod = env.AUTH_FUNC || 'default';
+    
     const authConfig = {
         isDev: isDev,
-        authMethod: 'default'
+        authMethod: authMethod
     };
 
-    // 读取环境变量配置
-    // 注意：生产环境不返回 token 明文，只返回认证方式
-    // DEV 环境返回 token 以便前端可以直接使用
-    if (env.AUTH_FUNC === 'key' && env.AUTH_KEY) {
-        authConfig.authMethod = 'key';
+    // AUTH_FUNC = 'dev' 时，返回默认 token
+    if (authMethod === 'dev') {
+        authConfig.token = 'enkansakura';
+    } else if (authMethod === 'key' && env.AUTH_KEY) {
         // 只在 DEV 环境返回 token
         if (isDev) {
             authConfig.token = env.AUTH_KEY;
@@ -502,16 +519,24 @@ async function clearConfigCache(env, group) {
 // ============================================
 
 async function verifyAuth(request, env) {
-    // 开发环境：跳过鉴权
-    if (env.ENVIRONMENT === 'dev' || env.ENVIRONMENT === 'development') {
+    // AUTH_FUNC = 'dev' 时，直接通过认证（用于开发环境）
+    if (env.AUTH_FUNC === 'dev') {
         return { valid: true, user: 'dev' };
     }
 
-    // 获取认证方式配置（默认为 key）
-    const authFunc = env.AUTH_FUNC;
+    // 检查是否配置了 AUTH_KEY（Token 认证）
+    const hasAuthKey = !!env.AUTH_KEY && env.AUTH_KEY.length > 0;
+    
+    // 检查是否配置了 Zero Trust
+    const hasZeroTrust = env.AUTH_FUNC === 'zerotrust';
+    
+    // 如果没有任何认证配置，拒绝访问
+    if (!hasAuthKey && !hasZeroTrust) {
+        return { valid: false, error: '服务器未配置认证，请联系管理员' };
+    }
 
-    if (authFunc === 'zerotrust') {
-        // Zero Trust 认证模式
+    // Zero Trust 认证模式
+    if (hasZeroTrust) {
         const accessHeader = request.headers.get('Cf-Access-Jwt-Assertion');
         const accessToken = request.headers.get('Cf-Access-Authenticated-Service-Id');
 
@@ -531,28 +556,23 @@ async function verifyAuth(request, env) {
         }
 
         return { valid: false, error: '未授权访问，请配置 Cloudflare Zero Trust' };
-    } else {
-        // Token 认证模式
-        // 检查 AUTH_KEY 是否配置
-        if (!env.AUTH_KEY) {
-            return { valid: false, error: '服务器未配置 AUTH_KEY，请联系管理员' };
-        }
-
-        const authHeader = request.headers.get('Authorization');
-
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return { valid: false, error: '未授权访问，缺少 Authorization header' };
-        }
-
-        const token = authHeader.substring(7);
-        const expectedToken = env.AUTH_KEY;
-
-        if (token === expectedToken) {
-            return { valid: true, user: 'token-auth' };
-        }
-
-        return { valid: false, error: 'Token 无效' };
     }
+
+    // Token 认证模式
+    const authHeader = request.headers.get('Authorization');
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return { valid: false, error: '未授权访问，缺少 Authorization header' };
+    }
+
+    const token = authHeader.substring(7);
+
+    // 验证 Token
+    if (token === env.AUTH_KEY) {
+        return { valid: true, user: 'token-auth' };
+    }
+
+    return { valid: false, error: 'Token 无效' };
 }
 
 // 简单的 JWT 解码（不验证签名，签名由 Cloudflare 验证）
@@ -1526,8 +1546,13 @@ function loadAuthConfig() {
         if (data && data.success && data.config) {
             isDevEnvironment = data.config.isDev;
             authMethod = data.config.authMethod;
-            // DEV 环境：从 API 获取 token 或从.dev.env 读取
-            if (isDevEnvironment) {
+            // AUTH_FUNC = 'dev' 时，直接使用默认 token
+            if (authMethod === 'dev' && data.config.token) {
+                devToken = data.config.token;
+                tokenLoaded = true;
+                updateUIForAuth();
+            } else if (isDevEnvironment) {
+                // DEV 环境：从 API 获取 token 或从.dev.env 读取
                 if (authMethod === 'key' && data.config.token) {
                     devToken = data.config.token;
                     tokenLoaded = true;
@@ -1557,8 +1582,13 @@ function updateUIForAuth() {
     const devHint = document.getElementById("devHint");
     const devBtn = document.getElementById("devBtn");
     const tokenInputGroup = document.getElementById("tokenInputGroup");
-    // 只有 DEV 环境才显示快速进入按钮和提示
-    if (isDevEnvironment) {
+    // AUTH_FUNC = 'dev' 时，显示快速进入按钮
+    if (authMethod === 'dev') {
+        if (devHint) devHint.style.display = "flex";
+        if (devBtn) devBtn.style.display = "flex";
+        if (tokenInputGroup) tokenInputGroup.style.display = "none";
+    } else if (isDevEnvironment) {
+        // DEV 环境且不是 dev 模式，显示快速进入按钮（从.dev.env 读取 token）
         if (devHint) devHint.style.display = "flex";
         if (devBtn) devBtn.style.display = "flex";
         if (tokenInputGroup) tokenInputGroup.style.display = "none";
