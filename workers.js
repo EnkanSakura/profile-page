@@ -135,9 +135,14 @@ function getAuthConfig(env, url) {
     };
 
     // 读取环境变量配置
+    // 注意：生产环境不返回 token 明文，只返回认证方式
+    // DEV 环境返回 token 以便前端可以直接使用
     if (env.AUTH_FUNC === 'key' && env.AUTH_KEY) {
         authConfig.authMethod = 'key';
-        authConfig.token = env.AUTH_KEY;
+        // 只在 DEV 环境返回 token
+        if (isDev) {
+            authConfig.token = env.AUTH_KEY;
+        }
     }
 
     return new Response(JSON.stringify({
@@ -819,7 +824,7 @@ function checkAuthToken() {
         window.history.replaceState({}, document.title, window.location.pathname);
         return true;
     }
-    
+
     // 从 API 获取认证配置
     fetch('/api/auth-config').then(function(r) {
         if (r.ok) return r.json();
@@ -827,28 +832,34 @@ function checkAuthToken() {
     }).then(function(data) {
         if (data && data.success && data.config) {
             isDevEnvironment = data.config.isDev;
-            if (data.config.authMethod === 'key' && data.config.token) {
-                devToken = data.config.token;
-            } else if (isDevEnvironment) {
-                // DEV 环境且没有 key 认证，从 .dev.env 读取
-                return fetch('/.dev.env').then(function(r) {
-                    if (r.ok) return r.text();
-                    return '';
-                }).then(function(text) {
-                    const match = text.match(/ADMIN_TOKEN=(.+)/);
-                    if (match) {
-                        devToken = match[1].trim();
-                    }
-                });
+            // DEV 环境从 API 获取 token 或从.dev.env 读取
+            if (isDevEnvironment) {
+                if (data.config.authMethod === 'key' && data.config.token) {
+                    devToken = data.config.token;
+                } else {
+                    // 从 .dev.env 读取
+                    return fetch('/.dev.env').then(function(r) {
+                        if (r.ok) return r.text();
+                        return '';
+                    }).then(function(text) {
+                        const match = text.match(/ADMIN_TOKEN=(.+)/);
+                        if (match) {
+                            devToken = match[1].trim();
+                        }
+                    });
+                }
             }
+            // 生产环境不自动获取 token，需要用户手动输入或通过 URL 参数传递
         }
     }).catch(function() {}).finally(function() {
         // 检查是否有 token
+        // DEV 环境没有 token 时跳转到认证页
+        // 生产环境没有 token 时也跳转到认证页
         if (!devToken) {
             window.location.href = '/admin';
         }
     });
-    
+
     return true;  // 异步检查，先返回 true
 }
 
@@ -1515,14 +1526,17 @@ function loadAuthConfig() {
         if (data && data.success && data.config) {
             isDevEnvironment = data.config.isDev;
             authMethod = data.config.authMethod;
-            if (authMethod === 'key' && data.config.token) {
-                devToken = data.config.token;
-                tokenLoaded = true;
-                updateUIForAuth();
-            } else if (isDevEnvironment) {
-                // DEV 环境且没有 key 认证，从 .dev.env 读取
-                loadDevToken();
+            // DEV 环境：从 API 获取 token 或从.dev.env 读取
+            if (isDevEnvironment) {
+                if (authMethod === 'key' && data.config.token) {
+                    devToken = data.config.token;
+                    tokenLoaded = true;
+                    updateUIForAuth();
+                } else {
+                    loadDevToken();
+                }
             }
+            // 生产环境：不自动获取 token，显示输入框让用户手动输入
         }
     }).catch(function() {});
 }
