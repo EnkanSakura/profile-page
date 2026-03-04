@@ -1543,11 +1543,13 @@ function updateUIForAuth() {
     const devHint = document.getElementById("devHint");
     const devBtn = document.getElementById("devBtn");
     const tokenInputGroup = document.getElementById("tokenInputGroup");
-    if (isDevEnvironment || authMethod === 'key') {
+    // 只有 DEV 环境才显示快速进入按钮和提示
+    if (isDevEnvironment) {
         if (devHint) devHint.style.display = "flex";
         if (devBtn) devBtn.style.display = "flex";
         if (tokenInputGroup) tokenInputGroup.style.display = "none";
     }
+    // 生产环境始终显示 Token 输入框，让用户手动输入
 }
 function checkEnvironment() {
     const envIndicator = document.getElementById("envIndicator");
