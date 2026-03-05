@@ -139,7 +139,7 @@ async function serveDevEnv(env) {
 // 认证配置 API
 // ============================================
 
-function getAuthConfig(env, url) {
+function getAuthConfig(request, env, url) {
     // 检查是否是 DEV 环境
     const hostname = url.hostname;
     const isDev = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('.dev.');
@@ -151,6 +151,14 @@ function getAuthConfig(env, url) {
         isDev: isDev,
         authMethod: authMethod
     };
+
+    // 检查是否已通过 Cloudflare Access 认证（Zero Trust 模式）
+    const cfAccessEmail = request.headers.get('Cf-Access-Authenticated-User-Email');
+    const cfAccessJwt = request.headers.get('Cf-Access-Jwt-Assertion');
+    if (cfAccessEmail || cfAccessJwt) {
+        authConfig.isAuthenticated = true;
+        authConfig.userEmail = cfAccessEmail || '';
+    }
 
     // AUTH_FUNC = 'dev' 时，返回默认 token
     if (authMethod === 'dev') {
@@ -245,7 +253,7 @@ async function handleAPI(request, env, url) {
     try {
         // GET /api/auth-config - 获取认证配置（用于认证页）
         if (method === 'GET' && path === '/api/auth-config') {
-            return getAuthConfig(env, url);
+            return getAuthConfig(request, env, url);
         }
 
         // POST /api/validate-token - 验证 Token
@@ -1625,6 +1633,13 @@ function loadAuthConfig() {
             authMethod = data.config.authMethod;
             useZeroTrust = data.config.useZeroTrust || false;
             zeroTrustTeamName = data.config.teamName || '';
+            // Zero Trust 模式：检查是否已通过认证
+            if (useZeroTrust && data.config.isAuthenticated) {
+                // 已通过 Zero Trust 认证，直接跳转后台
+                showNotification("Zero Trust 认证通过，正在跳转...", "success");
+                setTimeout(function() { window.location.href = "/admin.html"; }, 1500);
+                return;
+            }
             if (authMethod === 'dev' && data.config.token) {
                 devToken = data.config.token;
                 updateUIForAuth();
@@ -1635,6 +1650,9 @@ function loadAuthConfig() {
                 } else {
                     loadDevToken();
                 }
+            } else if (useZeroTrust) {
+                // Zero Trust 模式，未认证，显示登录按钮
+                updateUIForAuth();
             }
         }
     }).catch(function() {});
@@ -1659,10 +1677,10 @@ function updateUIForAuth() {
     const zerotrustBtn = document.getElementById("zerotrustBtn");
     const submitBtn = document.getElementById("submitBtn");
     if (useZeroTrust) {
-        // Zero Trust 模式：显示 Zero Trust 登录按钮
+        // Zero Trust 模式：显示 Zero Trust 登录按钮，隐藏 token 输入框
         if (zerotrustHint) zerotrustHint.style.display = "flex";
         if (zerotrustBtn) zerotrustBtn.style.display = "flex";
-        if (tokenInputGroup) tokenInputGroup.style.display = "block";
+        if (tokenInputGroup) tokenInputGroup.style.display = "none";
         if (submitBtn) submitBtn.style.display = "none";
         if (devBtn) devBtn.style.display = "none";
         if (devHint) devHint.style.display = "none";
