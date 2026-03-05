@@ -9,12 +9,15 @@
     let scaleFactor = 1;
     let currentBgUrl = null;
     let isPortrait = false;
+    let imagesLoaded = false;
 
     document.addEventListener('DOMContentLoaded', function() {
         init();
     });
 
     function init() {
+        // 显示加载状态
+        document.body.classList.add('loading');
         // 从 Workers API 加载配置
         loadConfigFromAPI();
     }
@@ -22,6 +25,41 @@
     // 检测横竖屏
     function checkOrientation() {
         isPortrait = window.innerHeight > window.innerWidth;
+    }
+
+    // 预加载图片
+    function preloadImages(urls, callback) {
+        if (!urls || urls.length === 0) {
+            if (callback) callback();
+            return;
+        }
+
+        var loaded = 0;
+        var total = urls.length;
+        var failed = 0;
+
+        function checkComplete() {
+            loaded + failed >= total && callback && callback();
+        }
+
+        urls.forEach(function(url) {
+            if (!url) {
+                loaded++;
+                checkComplete();
+                return;
+            }
+            var img = new Image();
+            img.onload = function() {
+                loaded++;
+                checkComplete();
+            };
+            img.onerror = function() {
+                failed++;
+                loaded++;
+                checkComplete();
+            };
+            img.src = url;
+        });
     }
 
     // 加载配置
@@ -91,6 +129,13 @@
         init3DEffects();
     }
 
+    // 等待图片加载完成后显示页面
+    function showPage() {
+        imagesLoaded = true;
+        document.body.classList.remove('loading');
+        document.body.classList.add('loaded');
+    }
+
     function initSecurity() {
         var security = appConfig.security || {};
 
@@ -147,6 +192,16 @@
 
         // 更新背景
         updateBackground();
+
+        // 预加载头像和背景图片，加载完成后再显示页面
+        var imageUrls = [];
+        if (avatarUrl) imageUrls.push(avatarUrl);
+        if (appearance.backgroundImage) imageUrls.push(appearance.backgroundImage);
+        if (appearance.portraitBackgroundImage) imageUrls.push(appearance.portraitBackgroundImage);
+
+        preloadImages(imageUrls, function() {
+            showPage();
+        });
 
         // 渲染社交链接
         var container = document.getElementById('social-links');

@@ -1716,13 +1716,22 @@ async function serveStaticFile(path) {
     const ext = '.' + cleanPath.split('.').pop().toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
+    // 图片资源：允许长期缓存
+    const imageExts = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico'];
+    const isImage = imageExts.includes(ext);
+
     // 从内嵌文件获取
     if (STATIC_FILES[cleanPath]) {
+        const headers = {
+            'Content-Type': contentType
+        };
+        if (isImage) {
+            headers['Cache-Control'] = 'public, max-age=31536000, immutable';
+        } else {
+            headers['Cache-Control'] = 'public, max-age=3600';
+        }
         return new Response(STATIC_FILES[cleanPath], {
-            headers: {
-                'Content-Type': contentType,
-                'Cache-Control': 'public, max-age=3600'
-            }
+            headers: headers
         });
     }
 
@@ -1732,11 +1741,16 @@ async function serveStaticFile(path) {
             const assetUrl = new URL(cleanPath, 'http://localhost');
             const response = await fetch(assetUrl);
             if (response.ok) {
+                const headers = {
+                    'Content-Type': contentType
+                };
+                if (isImage) {
+                    headers['Cache-Control'] = 'public, max-age=31536000, immutable';
+                } else {
+                    headers['Cache-Control'] = 'public, max-age=3600';
+                }
                 return new Response(response.body, {
-                    headers: {
-                        'Content-Type': contentType,
-                        'Cache-Control': 'public, max-age=31536000'
-                    }
+                    headers: headers
                 });
             }
         } catch (e) {
