@@ -40,7 +40,7 @@ name = "profile-page-prod"
     database_id = "9cff7945-9742-4e5c-90ac-bb83286de74f"
 
     [env.production.vars]
-    # AUTH_FUNC 由 GitHub Actions 部署时通过 vars.AUTH_FUNC 设置
+    AUTH_FUNC = "zerotrust"
     # 可选值：dev | key | zerotrust
     # AUTH_KEY 请通过 Cloudflare Dashboard 或 GitHub Secrets (wrangler secret put) 设置，不要在此明文存储
 
