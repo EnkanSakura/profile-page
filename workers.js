@@ -146,7 +146,7 @@ function getAuthConfig(env, url) {
 
     // 获取认证方式
     let authMethod = env.AUTH_FUNC || 'default';
-    
+
     const authConfig = {
         isDev: isDev,
         authMethod: authMethod
@@ -174,6 +174,50 @@ function getAuthConfig(env, url) {
 }
 
 // ============================================
+// Token 验证 API
+// ============================================
+
+async function validateToken(request, env, url) {
+    try {
+        const body = await request.json();
+        const token = body.token || '';
+
+        // 检查认证方式
+        const authMethod = env.AUTH_FUNC || 'default';
+        let isValid = false;
+
+        if (authMethod === 'key' && env.AUTH_KEY) {
+            // 验证 token 是否匹配
+            isValid = (token === env.AUTH_KEY);
+        } else if (authMethod === 'dev') {
+            // DEV 模式：验证默认 token
+            isValid = (token === 'enkansakura');
+        } else {
+            // 默认模式：token 长度至少 6 位即可
+            isValid = (token.length >= 6);
+        }
+
+        return new Response(JSON.stringify({
+            success: isValid,
+            valid: isValid
+        }), {
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+            }
+        });
+    } catch (error) {
+        return new Response(JSON.stringify({
+            success: false,
+            error: error.message
+        }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+}
+
+// ============================================
 // API 路由处理
 // ============================================
 
@@ -185,6 +229,11 @@ async function handleAPI(request, env, url) {
         // GET /api/auth-config - 获取认证配置（用于认证页）
         if (method === 'GET' && path === '/api/auth-config') {
             return getAuthConfig(env, url);
+        }
+
+        // POST /api/validate-token - 验证 Token
+        if (method === 'POST' && path === '/api/validate-token') {
+            return validateToken(request, env, url);
         }
 
         // GET /api/config - 获取所有配置（带缓存）
@@ -1542,7 +1591,8 @@ function hexToRgba(hex, alpha) {
 ,
     'admin/auth.html': `<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>管理员认证 - EnkanSakura Profile</title>\n    <link rel="stylesheet" href="/admin/auth.css">\n    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">\n</head>\n<body>\n    <div class="auth-container">\n        <div class="auth-card">\n            <div class="auth-header">\n                <div class="logo"><i class="fas fa-shield-alt"></i></div>\n                <h1>管理员认证</h1>\n                <p class="subtitle">请输入 Token 以访问后台管理系统</p>\n            </div>\n            <div class="auth-body">\n                <div class="env-indicator" id="envIndicator">DEV 环境</div>\n                <form id="authForm" onsubmit="handleAuth(event)">\n                    <div class="form-group" id="tokenInputGroup">\n                        <label for="token"><i class="fas fa-key"></i> 认证 Token</label>\n                        <input type="password" id="token" placeholder="请输入认证 Token" autocomplete="off" autofocus />\n                    </div>\n                    <div class="dev-hint" id="devHint" style="display: none;"><i class="fas fa-info-circle"></i><span>开发环境可直接点击按钮进入</span></div>\n                    <div class="auth-actions">\n                        <button type="submit" class="btn btn-primary">认证并进入</button>\n                        <button type="button" class="btn btn-dev" id="devBtn" onclick="devEnter()" style="display: none;">快速进入 (DEV)</button>\n                    </div>\n                </form>\n                <div class="auth-footer"><a href="/" class="back-link">返回首页</a></div>\n            </div>\n        </div>\n        <div class="auth-notification" id="notification"></div>\n    </div>\n    <script src="/admin/auth.js"></script>\n</body>\n</html>`,
     'admin/auth.css': `* { margin: 0; padding: 0; box-sizing: border-box; } :root { --primary-color: #667eea; --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%); --card-bg: #ffffff; --text-primary: #2d3748; --text-secondary: #718096; --border-color: #e2e8f0; --success-color: #48bb78; --danger-color: #f56565; } body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--primary-gradient); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; } .auth-container { width: 100%; max-width: 480px; } .auth-card { background: var(--card-bg); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; } .auth-header { background: var(--primary-gradient); color: white; padding: 40px 32px; text-align: center; } .logo { width: 80px; height: 80px; margin: 0 auto 20px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; } .logo i { font-size: 40px; } .auth-header h1 { font-size: 24px; margin-bottom: 8px; } .subtitle { font-size: 14px; opacity: 0.9; } .env-indicator { display: inline-block; background: rgba(255,255,255,0.2); padding: 6px 16px; border-radius: 20px; font-size: 12px; margin-bottom: 20px; } .auth-body { padding: 32px; } .form-group { margin-bottom: 24px; } .form-group label { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 10px; } .form-group input { width: 100%; padding: 14px 18px; border: 2px solid var(--border-color); border-radius: 12px; font-size: 16px; } .form-group input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 4px rgba(102,126,234,0.1); } .dev-hint { display: flex; align-items: center; gap: 10px; padding: 14px 18px; background: rgba(102,126,234,0.1); border-radius: 12px; margin-bottom: 24px; } .auth-actions { display: flex; flex-direction: column; gap: 12px; } .btn { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 24px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; border: none; } .btn-primary { background: var(--primary-gradient); color: white; } .btn-dev { background: linear-gradient(135deg, rgba(72,187,120,0.9), rgba(56,161,105,0.9)); color: white; } .auth-footer { margin-top: 24px; text-align: center; } .back-link { color: var(--text-secondary); text-decoration: none; } .auth-notification { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); padding: 16px 24px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); font-weight: 600; z-index: 1000; } .auth-notification.success { background: var(--success-color); color: white; } .auth-notification.error { background: var(--danger-color); color: white; }`,
-    'admin/auth.js': `let isDevEnvironment = false;
+    'admin/auth.js': `// 后台认证页面脚本
+let isDevEnvironment = false;
 let authMethod = 'default';
 let devToken = null;
 let tokenLoaded = false;
@@ -1555,13 +1605,11 @@ function loadAuthConfig() {
         if (data && data.success && data.config) {
             isDevEnvironment = data.config.isDev;
             authMethod = data.config.authMethod;
-            // AUTH_FUNC = 'dev' 时，直接使用默认 token
             if (authMethod === 'dev' && data.config.token) {
                 devToken = data.config.token;
                 tokenLoaded = true;
                 updateUIForAuth();
             } else if (isDevEnvironment) {
-                // DEV 环境：从 API 获取 token 或从.dev.env 读取
                 if (authMethod === 'key' && data.config.token) {
                     devToken = data.config.token;
                     tokenLoaded = true;
@@ -1570,7 +1618,6 @@ function loadAuthConfig() {
                     loadDevToken();
                 }
             }
-            // 生产环境：不自动获取 token，显示输入框让用户手动输入
         }
     }).catch(function() {});
 }
@@ -1591,18 +1638,15 @@ function updateUIForAuth() {
     const devHint = document.getElementById("devHint");
     const devBtn = document.getElementById("devBtn");
     const tokenInputGroup = document.getElementById("tokenInputGroup");
-    // AUTH_FUNC = 'dev' 时，显示快速进入按钮
     if (authMethod === 'dev') {
         if (devHint) devHint.style.display = "flex";
         if (devBtn) devBtn.style.display = "flex";
         if (tokenInputGroup) tokenInputGroup.style.display = "none";
     } else if (isDevEnvironment) {
-        // DEV 环境且不是 dev 模式，显示快速进入按钮（从.dev.env 读取 token）
         if (devHint) devHint.style.display = "flex";
         if (devBtn) devBtn.style.display = "flex";
         if (tokenInputGroup) tokenInputGroup.style.display = "none";
     }
-    // 生产环境始终显示 Token 输入框，让用户手动输入
 }
 function checkEnvironment() {
     const envIndicator = document.getElementById("envIndicator");
@@ -1622,8 +1666,22 @@ function handleAuth(event) {
     const token = tokenInput.value.trim();
     if (!token) { showNotification("请输入 Token", "error"); tokenInput.focus(); return; }
     if (token.length < 6) { showNotification("Token 长度至少为 6 位", "error"); tokenInput.focus(); return; }
-    showNotification("认证成功！正在跳转...", "success");
-    setTimeout(function() { window.location.href = "/admin.html?token=" + encodeURIComponent(token); }, 1000);
+    fetch("/api/validate-token", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: token }) }).then(function(r) {
+        if (r.ok) return r.json();
+        return null;
+    }).then(function(data) {
+        if (data && data.valid) {
+            showNotification("认证成功！正在跳转...", "success");
+            setTimeout(function() { window.location.href = "/admin.html?token=" + encodeURIComponent(token); }, 1000);
+        } else {
+            showNotification("Token 错误，请重新输入", "error");
+            tokenInput.value = "";
+            tokenInput.focus();
+        }
+    }).catch(function() {
+        showNotification("认证成功！正在跳转...", "success");
+        setTimeout(function() { window.location.href = "/admin.html?token=" + encodeURIComponent(token); }, 1000);
+    });
 }
 function showNotification(message, type) {
     const notification = document.getElementById("notification");
