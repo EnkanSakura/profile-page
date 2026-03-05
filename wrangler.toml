@@ -19,7 +19,7 @@ database_id = "9cff7945-9742-4e5c-90ac-bb83286de74f"
 # 建议使用 [env.xxx.vars] 为不同环境配置独立的变量
 [vars]
 PROFILE_PAGE_TITLE = "Your Profile Page"
-AUTH_FUNC = "dev"  # 默认使用 dev 模式（本地开发环境直接认证通过）
+# AUTH_FUNC 由 GitHub Actions 部署时设置，本地开发默认为 dev
 
 # 开发环境配置
 [env.dev]
@@ -40,7 +40,8 @@ name = "profile-page-prod"
     database_id = "9cff7945-9742-4e5c-90ac-bb83286de74f"
 
     [env.production.vars]
-    AUTH_FUNC = "key"  # 认证方式：dev（开发模式）| key（Token 认证）| zerotrust（Zero Trust 认证）
+    # AUTH_FUNC 由 GitHub Actions 部署时通过 vars.AUTH_FUNC 设置
+    # 可选值：dev | key | zerotrust
     # AUTH_KEY 请通过 Cloudflare Dashboard 或 GitHub Secrets (wrangler secret put) 设置，不要在此明文存储
 
 # 部署说明：
