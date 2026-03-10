@@ -25,10 +25,35 @@
 - 🌍 响应式布局，适配桌面端和移动端
 - ⚡ 基于 Cloudflare Workers 边缘计算，全球加速
 - 💾 使用 Cloudflare D1 数据库持久化存储配置
-- 🔐 支持 Cloudflare Access 鉴权（生产环境）
+- 🔐 三种认证模式：dev / key / Zero Trust
 - 🎯 可视化后台管理，无需编写代码
 - 📱 支持多个头像随机显示
 - 🖼️ 支持横屏/竖屏背景图片分别设置
+
+---
+
+## 🔐 认证模式
+
+项目支持三种认证方式，通过 `AUTH_FUNC` 环境变量切换：
+
+| 模式 | 说明 | 配置 | 适用场景 |
+|------|------|------|----------|
+| **dev** | 开发模式，点击按钮直接进入 | `AUTH_FUNC=dev` | 本地开发 |
+| **key** | Token 认证，输入正确 token 后进入 | `AUTH_FUNC=key` + `AUTH_KEY=xxx` | 简单保护 |
+| **zerotrust** | Cloudflare Zero Trust 认证 | `AUTH_FUNC=zerotrust` | 生产环境 |
+
+### 配置方法
+
+在 `wrangler.toml` 中设置：
+
+```toml
+[vars]
+AUTH_FUNC = "dev"  # dev | key | zerotrust
+
+[env.production.vars]
+AUTH_FUNC = "zerotrust"
+AUTH_KEY = "your-secret-token"  # key 模式需要
+```
 
 ---
 
@@ -82,12 +107,23 @@ wrangler d1 execute profile-page-db --remote --file=d1-schema.sql
 ### 6. 本地开发
 
 ```bash
+# 默认模式（使用 wrangler.toml 全局配置）
 npm run dev
+
+# dev 模式（免认证直接进入）
+npm run dev:dev
+
+# key 模式（token 认证，token=aaaaaa）
+npm run dev:key
+
+# zerotrust 模式（免认证直接进入）
+npm run dev:zerotrust
 ```
 
 访问：
 - **前台主页**: http://localhost:8787/
 - **后台管理**: http://localhost:8787/admin.html
+- **认证页**: http://localhost:8787/admin
 
 ### 7. 部署到生产环境
 
@@ -234,29 +270,110 @@ curl -X POST https://your-domain.workers.dev/api/update \
 | **D1 存储** | 5 GB | 配置数据占用极小 |
 | **D1 读取** | 500 万次/月 | - |
 | **D1 写入** | 100 万次/月 | - |
+| **KV 存储** | 1 GB | 配置缓存 |
+| **KV 读取** | 100,000 次/天 | - |
 
 **结论**: 完全免费，适合个人使用。
 
 ---
 
+## 🔧 缓存配置
+
+项目使用两种缓存方式：
+
+### 1. KV 缓存（配置数据）
+
+**用途**：缓存配置数据，减少 D1 读取
+
+**配置步骤**：
+
+1. 创建 KV namespace：
+```bash
+wrangler kv:namespace create CONFIG_CACHE
+```
+
+2. 复制输出的 `id`，更新 `wrangler.toml` 中的 `your-kv-namespace-id`
+
+3. 本地开发使用独立 namespace：
+```bash
+wrangler kv:namespace create CONFIG_CACHE --preview
+```
+
+### 2. Cache API（静态资源）
+
+**用途**：缓存静态资源（图片、CSS、JS）
+
+**配置**：无需额外配置，自动使用 Cloudflare 边缘缓存
+
+**缓存策略**：
+- 图片资源：缓存 1 年
+- HTML/CSS/JS：缓存 1 小时
+- API 响应：不缓存
+
+---
+
 ## 🔒 安全说明
 
-### 开发环境
-- 默认跳过鉴权
-- 方便本地调试
+### 认证模式详解
 
-### 生产环境
-- 使用 Cloudflare Access 保护后台
-- 配置允许访问的邮箱域名
-- 自动跳转到 Access 登录页
+#### 1. dev 模式（开发环境）
+- **认证方式**：免认证
+- **界面显示**：⚡ 快速进入按钮
+- **跳转 URL**：`/admin.html?dev=true`
+- **适用场景**：本地开发调试
+
+#### 2. key 模式（Token 认证）
+- **认证方式**：输入正确 token
+- **界面显示**：🔑 Token 输入框 + 认证按钮
+- **验证逻辑**：调用 `/api/validate-token` API
+- **环境变量**：`AUTH_FUNC=key` + `AUTH_KEY=your-token`
+- **适用场景**：简单保护，防止未授权访问
+
+#### 3. zerotrust 模式（Cloudflare Zero Trust）
+- **认证方式**：Cloudflare Access 外部认证
+- **界面显示**：☁️ 进入后台按钮
+- **跳转 URL**：`/admin.html`
+- **认证流程**：
+  1. 用户访问受保护的资源
+  2. Cloudflare Access 拦截并验证用户身份
+  3. 验证通过后允许访问 Worker
+  4. 点击按钮直接进入后台
+- **环境变量**：`AUTH_FUNC=zerotrust`
+- **适用场景**：生产环境，企业级安全
 
 ### 配置步骤
+
+#### Zero Trust 配置
 
 1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)
 2. 进入 **Zero Trust** → **Access** → **Applications**
 3. 创建新应用，选择 **Self-hosted**
-4. 配置允许的邮箱域名或服务 ID
-5. 在 Worker 中绑定 Access 策略
+4. 配置 Worker 路由：`me.enkansakura.top/*`
+5. 配置允许的邮箱域名或服务 ID
+6. 在 `wrangler.toml` 中设置 `AUTH_FUNC=zerotrust`
+
+#### Token 认证配置
+
+1. 设置环境变量：
+```toml
+[env.production.vars]
+AUTH_FUNC = "key"
+AUTH_KEY = "your-secret-token"
+```
+
+2. 通过 `wrangler secret` 设置敏感信息：
+```bash
+wrangler secret put AUTH_KEY --env production
+```
+
+### 错误处理
+
+| 错误信息 | 原因 | 解决方案 |
+|---------|------|---------|
+| 服务器认证方式配置无效 | `AUTH_FUNC` 未设置或值无效 | 检查环境变量配置 |
+| 服务器未配置 AUTH_KEY | `AUTH_FUNC=key` 但未设置 `AUTH_KEY` | 设置 `AUTH_KEY` 环境变量 |
+| Token 错误 | 输入的 token 不匹配 | 检查 token 是否正确 |
+| 认证配置加载失败 | 网络问题或 API 错误 | 刷新页面重试 |
 
 ---
 

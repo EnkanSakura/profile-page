@@ -2,6 +2,7 @@
 node_modules/
 
 # 构建产物
+wrangler.toml
 .wrangler/
 dist/
 build/
@@ -46,4 +47,4 @@ generate-icon.html
 
 # 项目特定忽略
 .golutra/
-scripts/
+.qwen/

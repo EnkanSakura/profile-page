@@ -24,6 +24,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # 验证必要 Secrets
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then
+            echo "Error: CLOUDFLARE_API_TOKEN secret is required"
+            exit 1
+          fi
+          if [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
+            echo "Error: CLOUDFLARE_ACCOUNT_ID secret is required"
+            exit 1
+          fi
+
+      # 部署 Worker
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
@@ -32,6 +45,26 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
+      # 绑定 KV Namespace
+      - name: Bind KV Namespace
+        if: ${{ secrets.CONFIG_CACHE_ID != '' }}
+        run: |
+          echo "Binding KV Namespace: CONFIG_CACHE"
+          npx wrangler kv:namespace bind CONFIG_CACHE --env production --id ${{ secrets.CONFIG_CACHE_ID }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # 配置路由
+      - name: Configure Route
+        run: |
+          echo "Deploying routes for production environment..."
+          npx wrangler routes deploy --env production || echo "Route configuration skipped or failed"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # 设置 Zero Trust 配置
       - name: Set Zero Trust configuration
         run: |
           echo "Setting Zero Trust configuration..."
@@ -43,8 +76,11 @@ jobs:
           ZERO_TRUST_TEAM_NAME: ${{ secrets.ZERO_TRUST_TEAM_NAME }}
           ZERO_TRUST_POLICY_ID: ${{ secrets.ZERO_TRUST_POLICY_ID }}
 
+      # 设置 AUTH_KEY（可选，仅当 secret 存在时）
       - name: Set AUTH_KEY secret (optional)
-        run: echo "$AUTH_KEY" | npx wrangler secret put AUTH_KEY --env production
+        run: |
+          echo "Setting AUTH_KEY secret..."
+          echo "$AUTH_KEY" | npx wrangler secret put AUTH_KEY --env production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

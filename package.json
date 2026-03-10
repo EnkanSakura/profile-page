@@ -6,11 +6,16 @@
   "scripts": {
     "dev": "wrangler dev --local --persist-to .wrangler/state",
     "dev:local": "wrangler dev --local --persist-to .wrangler/state",
+    "dev:dev": "wrangler dev --local --persist-to .wrangler/state --env dev",
+    "dev:key": "wrangler dev --local --persist-to .wrangler/state --var AUTH_FUNC:key --var AUTH_KEY:aaaaaa",
+    "dev:zerotrust": "wrangler dev --local --persist-to .wrangler/state --var AUTH_FUNC:zerotrust",
     "db:init": "wrangler d1 execute profile-page-db --local --file=d1-schema.sql --persist-to .wrangler/state",
     "db:init:remote": "wrangler d1 execute profile-page-db --remote --file=d1-schema.sql",
     "deploy": "wrangler deploy --env production",
     "deploy:dev": "wrangler deploy --env dev",
-    "tail": "wrangler tail"
+    "tail": "wrangler tail",
+    "embed": "node scripts/embed-files.cjs",
+    "extract": "node scripts/extract-files.cjs"
   },
   "devDependencies": {
     "wrangler": "^3.114.17"

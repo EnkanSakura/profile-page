@@ -22,6 +22,13 @@ document.addEventListener('DOMContentLoaded', function() {
 function checkAuthToken() {
     const urlParams = new URLSearchParams(window.location.search);
     const urlToken = urlParams.get('token');
+    const urlZerotrust = urlParams.get('zerotrust');
+    const urlDev = urlParams.get('dev');
+
+    // zerotrust 模式和 dev 模式：不需要 token 认证
+    if (urlZerotrust || urlDev) {
+        return true;
+    }
 
     // 如果 URL 中有 token 参数，直接使用
     if (urlToken) {
