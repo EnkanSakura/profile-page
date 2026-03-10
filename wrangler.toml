@@ -1,0 +1,48 @@
+# Cloudflare Workers + Pages 混合部署配置
+name = "profile-page"
+main = "workers.js"
+compatibility_date = "2024-09-19"
+workers_dev = true
+
+# D1 数据库绑定
+[[d1_databases]]
+binding = "PROFILE_DB"
+database_name = "profile-page-db"
+database_id = "9cff7945-9742-4e5c-90ac-bb83286de74f"
+
+# KV 缓存绑定（用于配置缓存）
+[[kv_namespaces]]
+binding = "CONFIG_CACHE"
+id = "85655f483fae4a45bb73069333aeaf2d"
+
+# 全局变量
+[vars]
+AUTH_FUNC = "dev"
+
+# 开发环境
+[env.dev]
+name = "profile-page-dev"
+[[env.dev.d1_databases]]
+binding = "PROFILE_DB"
+database_name = "profile-page-db"
+database_id = "9cff7945-9742-4e5c-90ac-bb83286de74f"
+[[env.dev.kv_namespaces]]
+binding = "CONFIG_CACHE"
+id = "85655f483fae4a45bb73069333aeaf2d"
+[env.dev.vars]
+AUTH_FUNC = "dev"
+
+# 生产环境
+[env.production]
+name = "profile-page-prod"
+route = { pattern = "me.enkansakura.top", zone_name = "enkansakura.top" }
+[[env.production.d1_databases]]
+binding = "PROFILE_DB"
+database_name = "profile-page-db"
+database_id = "9cff7945-9742-4e5c-90ac-bb83286de74f"
+[[env.production.kv_namespaces]]
+binding = "CONFIG_CACHE"
+id = "85655f483fae4a45bb73069333aeaf2d"
+[env.production.vars]
+AUTH_FUNC = "zerotrust"
+

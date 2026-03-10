@@ -36,35 +36,14 @@ jobs:
             exit 1
           fi
 
-      # 部署 Worker
+      # 部署 Worker（wrangler.toml 已配置 D1 和 KV 绑定）
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           environment: production
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
-      # 绑定 KV Namespace
-      - name: Bind KV Namespace
-        if: ${{ secrets.CONFIG_CACHE_ID != '' }}
-        run: |
-          echo "Binding KV Namespace: CONFIG_CACHE"
-          npx wrangler kv:namespace bind CONFIG_CACHE --env production --id ${{ secrets.CONFIG_CACHE_ID }}
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      # 配置路由
-      - name: Configure Route
-        run: |
-          echo "Deploying routes for production environment..."
-          npx wrangler routes deploy --env production || echo "Route configuration skipped or failed"
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      # 设置 Zero Trust 配置
+      # 设置 Zero Trust 配置（生产环境必需）
       - name: Set Zero Trust configuration
         run: |
           echo "Setting Zero Trust configuration..."
