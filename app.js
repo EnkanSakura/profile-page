@@ -9,25 +9,17 @@
     let scaleFactor = 1;
     let currentBgUrl = null;
     let isPortrait = false;
-    let imagesLoaded = false;
 
     document.addEventListener('DOMContentLoaded', function() {
-        init();
-    });
-
-    function init() {
-        // 显示加载状态
-        document.body.classList.add('loading');
-        // 从 Workers API 加载配置
         loadConfigFromAPI();
-    }
+    });
 
     // 检测横竖屏
     function checkOrientation() {
         isPortrait = window.innerHeight > window.innerWidth;
     }
 
-    // 预加载图片
+    // 预加载图片，等待全部完成（成功或失败）
     function preloadImages(urls, callback) {
         if (!urls || urls.length === 0) {
             if (callback) callback();
@@ -43,22 +35,15 @@
             return;
         }
 
-        function checkComplete() {
-            if (loaded >= total && callback) {
-                callback();
-            }
+        function onDone() {
+            loaded++;
+            if (loaded >= total && callback) callback();
         }
 
         uniqueUrls.forEach(function(url) {
             var img = new Image();
-            img.onload = function() {
-                loaded++;
-                checkComplete();
-            };
-            img.onerror = function() {
-                loaded++;
-                checkComplete();
-            };
+            img.onload = onDone;
+            img.onerror = onDone;
             img.src = url;
         });
     }
@@ -67,23 +52,20 @@
     function loadConfigFromAPI() {
         fetch('/api/config')
             .then(function(response) {
-                if (!response.ok) {
-                    throw new Error('HTTP ' + response.status);
-                }
+                if (!response.ok) throw new Error('HTTP ' + response.status);
                 return response.json();
             })
             .then(function(data) {
                 if (data.success && data.config) {
                     appConfig = data.config;
-                    checkOrientation();
-                    renderPage();
                 } else {
                     throw new Error('配置数据无效');
                 }
             })
-            .catch(function(error) {
-                // 使用默认配置
+            .catch(function() {
                 appConfig = getDefaultConfig();
+            })
+            .then(function() {
                 checkOrientation();
                 renderPage();
             });
@@ -128,17 +110,6 @@
         initSecurity();
         renderContent();
         init3DEffects();
-    }
-
-    // 等待图片加载完成后显示页面
-    function showPage() {
-        imagesLoaded = true;
-        var container = document.querySelector('.container');
-        if (container) {
-            container.setAttribute('aria-hidden', 'false');
-        }
-        document.body.classList.remove('loading');
-        document.body.classList.add('loaded');
     }
 
     function initSecurity() {
@@ -195,24 +166,14 @@
         if (bioEl) bioEl.textContent = profile.bio || '';
         if (footerEl) footerEl.textContent = appearance.footer || '';
 
-        // 更新背景
-        updateBackground();
+        // 更新背景信息，但不立即显示背景图
+        updateBackground(true);
 
-        // 预加载头像和背景图片，加载完成后再显示页面
+        // 收集需要预加载的图片 URL
         var imageUrls = [];
         if (avatarUrl) imageUrls.push(avatarUrl);
         if (appearance.backgroundImage) imageUrls.push(appearance.backgroundImage);
         if (appearance.portraitBackgroundImage) imageUrls.push(appearance.portraitBackgroundImage);
-
-        // 在图片加载完成前保持加载状态
-        if (imageUrls.length > 0) {
-            preloadImages(imageUrls, function() {
-                showPage();
-            });
-        } else {
-            // 如果没有图片需要加载，直接显示页面
-            showPage();
-        }
 
         // 渲染社交链接
         var container = document.getElementById('social-links');
@@ -237,10 +198,14 @@
                 container.appendChild(a);
             });
         }
+
+        preloadImages(imageUrls, function() {
+            updateBackground(false);
+        });
     }
 
     // 更新背景图片
-    function updateBackground() {
+    function updateBackground(hideBackground) {
         if (!appConfig) return;
 
         var appearance = appConfig.appearance || {};
@@ -256,29 +221,28 @@
             bgUrl = appearance.backgroundImage || 'https://picsum.photos/1920/1080';
         }
 
-        // 如果背景图片没有变化，不更新
-        if (currentBgUrl === bgUrl && bgLayer) {
-            return;
-        }
-
         currentBgUrl = bgUrl;
 
-        // 设置 body 背景
-        document.body.style.backgroundImage = "url('" + bgUrl + "')";
-
-        // 计算缩放因子
         var parallaxIntensity = effects.parallaxIntensity || 1.0;
         var maxParallax = 20 * parallaxIntensity;
         scaleFactor = 1 + (maxParallax / Math.min(window.innerWidth, window.innerHeight));
 
-        // 创建或更新背景层
         if (!bgLayer) {
             bgLayer = document.createElement('div');
             bgLayer.className = 'background-layer';
             document.body.insertBefore(bgLayer, document.body.firstChild);
         }
 
-        bgLayer.style.backgroundImage = "url('" + bgUrl + "')";
+        if (hideBackground) {
+            bgLayer.style.backgroundImage = 'none';
+            document.body.style.backgroundImage = 'none';
+            bgLayer.style.opacity = '0';
+        } else {
+            document.body.style.backgroundImage = "url('" + bgUrl + "')";
+            bgLayer.style.backgroundImage = "url('" + bgUrl + "')";
+            bgLayer.style.opacity = '1';
+        }
+
         bgLayer.style.transform = 'scale(' + scaleFactor + ')';
 
         // 设置遮罩和卡片透明度
@@ -298,6 +262,7 @@
             'body::before { background: rgba(0, 0, 0, ' + overlayOpacity + '); }' +
             '.profile-card { background: rgba(255, 255, 255, ' + cardOpacity + '); backdrop-filter: blur(' + backdropBlur + 'px); }';
     }
+
 
     function init3DEffects() {
         var effects = appConfig.effects || {};

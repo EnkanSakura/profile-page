@@ -15,6 +15,7 @@ const WORKERS_FILE = path.join(ROOT_DIR, 'workers.js');
 const FILES_TO_EXTRACT = [
     'index.html',
     'styles.css',
+    'app.js',
     'admin.html',
     'admin.css',
     'admin.js',

@@ -13,6 +13,7 @@ const WORKERS_FILE = path.join(ROOT_DIR, 'workers.js');
 const FILE_MAPPINGS = {
     'index.html': 'index.html',
     'styles.css': 'styles.css',
+    'app.js': 'app.js',
     'admin.html': 'admin.html',
     'admin.css': 'admin.css',
     'admin.js': 'admin.js',
