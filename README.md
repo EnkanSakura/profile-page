@@ -217,7 +217,7 @@ profile-page/
 ├── 后台文件
 │   ├── admin.html          # 管理后台
 │   ├── admin.js            # 后台脚本
-│   └── admin-styles.css    # 后台样式
+│   └── admin.css    # 后台样式
 │
 ├── Cloudflare Workers
 │   ├── workers.js          # Workers 主文件

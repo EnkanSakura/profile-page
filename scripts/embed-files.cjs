@@ -12,7 +12,10 @@ const WORKERS_FILE = path.join(ROOT_DIR, 'workers.js');
 // 定义文件映射关系
 const FILE_MAPPINGS = {
     'index.html': 'index.html',
+    'styles.css': 'styles.css',
     'admin.html': 'admin.html',
+    'admin.css': 'admin.css',
+    'admin.js': 'admin.js',
     'admin/auth.html': 'admin/auth.html',
     'admin/auth.css': 'admin/auth.css',
     'admin/auth.js': 'admin/auth.js'

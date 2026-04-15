@@ -34,27 +34,28 @@
             return;
         }
 
+        var uniqueUrls = Array.from(new Set(urls.filter(Boolean)));
         var loaded = 0;
-        var total = urls.length;
-        var failed = 0;
+        var total = uniqueUrls.length;
 
-        function checkComplete() {
-            loaded + failed >= total && callback && callback();
+        if (total === 0) {
+            if (callback) callback();
+            return;
         }
 
-        urls.forEach(function(url) {
-            if (!url) {
-                loaded++;
-                checkComplete();
-                return;
+        function checkComplete() {
+            if (loaded >= total && callback) {
+                callback();
             }
+        }
+
+        uniqueUrls.forEach(function(url) {
             var img = new Image();
             img.onload = function() {
                 loaded++;
                 checkComplete();
             };
             img.onerror = function() {
-                failed++;
                 loaded++;
                 checkComplete();
             };
@@ -132,6 +133,10 @@
     // 等待图片加载完成后显示页面
     function showPage() {
         imagesLoaded = true;
+        var container = document.querySelector('.container');
+        if (container) {
+            container.setAttribute('aria-hidden', 'false');
+        }
         document.body.classList.remove('loading');
         document.body.classList.add('loaded');
     }
@@ -199,9 +204,15 @@
         if (appearance.backgroundImage) imageUrls.push(appearance.backgroundImage);
         if (appearance.portraitBackgroundImage) imageUrls.push(appearance.portraitBackgroundImage);
 
-        preloadImages(imageUrls, function() {
+        // 在图片加载完成前保持加载状态
+        if (imageUrls.length > 0) {
+            preloadImages(imageUrls, function() {
+                showPage();
+            });
+        } else {
+            // 如果没有图片需要加载，直接显示页面
             showPage();
-        });
+        }
 
         // 渲染社交链接
         var container = document.getElementById('social-links');
@@ -236,8 +247,8 @@
         var effects = appConfig.effects || {};
 
         // 根据横竖屏选择背景图片
-        var bgUrl = isPortrait && appearance.portraitBackgroundImage 
-            ? appearance.portraitBackgroundImage 
+        var bgUrl = isPortrait && appearance.portraitBackgroundImage
+            ? appearance.portraitBackgroundImage
             : appearance.backgroundImage;
 
         // 如果竖屏未设置，使用横屏背景

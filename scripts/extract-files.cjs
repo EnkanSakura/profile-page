@@ -14,7 +14,10 @@ const WORKERS_FILE = path.join(ROOT_DIR, 'workers.js');
 // 定义要提取的文件列表
 const FILES_TO_EXTRACT = [
     'index.html',
+    'styles.css',
     'admin.html',
+    'admin.css',
+    'admin.js',
     'admin/auth.html',
     'admin/auth.css',
     'admin/auth.js'

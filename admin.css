@@ -58,15 +58,6 @@ body {
     align-items: center;
 }
 
-.env-indicator {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    backdrop-filter: blur(10px);
-}
-
 .btn {
     padding: 12px 24px;
     border-radius: 10px;
@@ -82,16 +73,6 @@ body {
 
 .btn i {
     font-size: 14px;
-}
-
-.btn-preview {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    backdrop-filter: blur(10px);
-}
-
-.btn-preview:hover {
-    background: rgba(255, 255, 255, 0.3);
 }
 
 .btn-save {

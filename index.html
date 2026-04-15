@@ -11,7 +11,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="container">
+    <div class="page-loader" id="pageLoader" aria-live="polite">
+        <div class="page-loader__spinner"></div>
+        <div class="page-loader__progress">
+            <div class="page-loader__progress-bar"></div>
+        </div>
+    </div>
+    <div class="container" aria-hidden="true">
         <div class="profile-card">
             <div class="profile-header">
                 <div class="avatar">

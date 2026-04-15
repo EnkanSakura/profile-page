@@ -2,94 +2,111 @@
 // 基于 Cloudflare Workers + D1 架构
 
 let currentConfig = {};
-let originalConfig = {};  // 保存原始配置用于对比
+let originalConfig = {};
 let avatarUrlInputCount = 0;
 let socialLinkCount = 0;
-let isDevEnvironment = false;
-let devToken = null;  // 从 URL 参数或 API 获取的 token
+let authMethod = null;
+let accessToken = null;  // 用于 API 请求的认证凭据
 
 // 页面加载
-document.addEventListener('DOMContentLoaded', function() {
-    checkEnvironment();
-    if (!checkAuthToken()) {
-        return;  // 未认证，已跳转
-    }
+document.addEventListener('DOMContentLoaded', async function() {
+    const authenticated = await initAuth();
+    if (!authenticated) return;
     loadConfig();
     setupEventListeners();
+    updateTokenButtonVisibility();
 });
 
-// 检查 Token 是否有效
-function checkAuthToken() {
+/**
+ * 初始化认证：获取 authMethod 和 accessToken
+ * @returns {boolean} 是否认证成功
+ */
+async function initAuth() {
     const urlParams = new URLSearchParams(window.location.search);
     const urlToken = urlParams.get('token');
     const urlZerotrust = urlParams.get('zerotrust');
     const urlDev = urlParams.get('dev');
 
-    // zerotrust 模式和 dev 模式：不需要 token 认证
-    if (urlZerotrust || urlDev) {
-        return true;
-    }
-
-    // 如果 URL 中有 token 参数，直接使用
-    if (urlToken) {
-        devToken = urlToken;
-        // 清除 URL 中的 token 参数
+    // 清除 URL 参数
+    if (urlToken || urlZerotrust || urlDev) {
         window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // 加载认证配置
+    let authConfig = null;
+    try {
+        const resp = await fetch('/api/auth-config');
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.success && data.config) {
+                authConfig = data.config;
+            }
+        }
+    } catch (e) {
+        console.error('加载认证配置失败:', e);
+    }
+
+    if (!authConfig) {
+        window.location.href = '/admin';
+        return false;
+    }
+
+    if (authConfig.error) {
+        alert(authConfig.error);
+        window.location.href = '/admin';
+        return false;
+    }
+
+    authMethod = authConfig.authMethod;
+
+    // 根据认证方式设置 accessToken
+    if (urlDev) {
+        // dev 模式：直接访问
+        accessToken = '__dev__';
         return true;
     }
 
-    // 从 API 获取认证配置
-    fetch('/api/auth-config').then(function(r) {
-        if (r.ok) return r.json();
-        return null;
-    }).then(function(data) {
-        if (data && data.success && data.config) {
-            isDevEnvironment = data.config.isDev;
-            const authMethod = data.config.authMethod;
-            // AUTH_FUNC = 'dev' 时，直接使用默认 token
-            if (authMethod === 'dev' && data.config.token) {
-                devToken = data.config.token;
-            } else if (isDevEnvironment) {
-                // DEV 环境从 API 获取 token 或从.dev.env 读取
-                if (authMethod === 'key' && data.config.token) {
-                    devToken = data.config.token;
-                } else {
-                    // 从 .dev.env 读取
-                    return fetch('/.dev.env').then(function(r) {
-                        if (r.ok) return r.text();
-                        return '';
-                    }).then(function(text) {
-                        const match = text.match(/ADMIN_TOKEN=(.+)/);
-                        if (match) {
-                            devToken = match[1].trim();
-                        }
-                    });
-                }
-            }
-            // 生产环境不自动获取 token，需要用户手动输入或通过 URL 参数传递
-        }
-    }).catch(function() {}).finally(function() {
-        // 检查是否有 token
-        // DEV 环境没有 token 时跳转到认证页
-        // 生产环境没有 token 时也跳转到认证页
-        if (!devToken) {
-            window.location.href = '/admin';
-        }
-    });
+    if (urlZerotrust) {
+        // zerotrust 模式：Cloudflare 已认证
+        accessToken = '__zerotrust__';
+        return true;
+    }
 
-    return true;  // 异步检查，先返回 true
+    if (urlToken) {
+        // key 模式：URL 中带 token
+        accessToken = urlToken;
+        return true;
+    }
+
+    // 没有 URL 参数，检查是否之前已认证（sessionStorage）
+    const stored = sessionStorage.getItem('authToken');
+    if (stored) {
+        accessToken = stored;
+        return true;
+    }
+
+    // 未认证，跳转到认证页
+    window.location.href = '/admin';
+    return false;
 }
 
-// 检查环境
-function checkEnvironment() {
-    const envIndicator = document.getElementById('envIndicator');
-    if (window.location.hostname === 'localhost' || 
-        window.location.hostname === '127.0.0.1' ||
-        window.location.hostname.includes('.dev.')) {
-        isDevEnvironment = true;
-        if (envIndicator) envIndicator.textContent = 'DEV';
-    } else {
-        if (envIndicator) envIndicator.textContent = 'PROD';
+/**
+ * 获取带认证头的请求选项
+ */
+function authHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    if (accessToken) {
+        headers['Authorization'] = 'Bearer ' + accessToken;
+        sessionStorage.setItem('authToken', accessToken);
+    }
+    return headers;
+}
+
+// 更新 token 按钮可见性（仅 key 模式显示）
+function updateTokenButtonVisibility() {
+    var tokenBtn = document.querySelector('.btn-token');
+    if (tokenBtn) {
+        tokenBtn.style.display = (authMethod === 'key') ? 'inline-flex' : 'none';
     }
 }
 
@@ -418,7 +435,7 @@ function setupEventListeners() {
     });
 
     // 滑块值更新
-    const sliders = [
+    var sliders = [
         { id: 'overlayOpacity', valueId: 'overlayOpacityValue' },
         { id: 'backdropBlur', valueId: 'backdropBlurValue' },
         { id: 'cardOpacity', valueId: 'cardOpacityValue' },
@@ -432,6 +449,12 @@ function setupEventListeners() {
             updateSliderValue(item.id, item.valueId);
         });
     });
+
+    // Token 输入框匹配检查
+    var newTokenInput = document.getElementById('newToken');
+    var confirmTokenInput = document.getElementById('confirmToken');
+    if (newTokenInput) newTokenInput.addEventListener('input', checkTokenMatch);
+    if (confirmTokenInput) confirmTokenInput.addEventListener('input', checkTokenMatch);
 
     // 键盘保存快捷键 Ctrl+S
     document.addEventListener('keydown', function(e) {
@@ -518,7 +541,12 @@ function saveAllConfig() {
     });
 
     if (!hasChanges) {
-        showNotification('配置已保存！', 'success');
+        showNotification('配置没有改动，无需保存', 'success');
+        return;
+    }
+
+    if (!accessToken) {
+        showNotification('未认证，请先登录', 'error');
         return;
     }
 
@@ -527,40 +555,26 @@ function saveAllConfig() {
         if (index >= groups.length) {
             if (errorCount === 0) {
                 showNotification('配置已保存！', 'success');
-                // 更新原始配置
                 originalConfig = JSON.parse(JSON.stringify(currentConfig));
             } else {
-                showNotification(`保存完成，${savedCount}成功，${errorCount}失败`, 'warning');
+                showNotification('保存完成，' + savedCount + '成功，' + errorCount + '失败', 'warning');
             }
             return;
         }
 
-        const group = groups[index];
-        
-        // 如果这个配置组没有改动，跳过
+        var group = groups[index];
+
         if (deepEqual(currentConfig[group], originalConfig[group])) {
             saveGroup(index + 1);
             return;
         }
 
-        const data = currentConfig[group];
-
-        // 获取 Token（从 API 或 URL 参数获取）
-        if (!devToken) {
-            showNotification('未认证，请先登录', 'error');
-            return;
-        }
-        const token = devToken;
-
         fetch('/api/update', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-            },
+            headers: authHeaders(),
             body: JSON.stringify({
                 group: group,
-                data: data
+                data: currentConfig[group]
             })
         })
         .then(function(response) {
@@ -574,7 +588,7 @@ function saveAllConfig() {
             }
             saveGroup(index + 1);
         })
-        .catch(function(error) {
+        .catch(function() {
             errorCount++;
             saveGroup(index + 1);
         });
@@ -588,9 +602,7 @@ function resetConfig() {
     if (confirm('确定要重置为默认配置吗？此操作不可恢复！')) {
         fetch('/api/reset', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            headers: authHeaders()
         })
         .then(function(response) {
             return response.json();
@@ -662,6 +674,11 @@ function changeToken() {
     const newToken = document.getElementById('newToken').value;
     const confirmToken = document.getElementById('confirmToken').value;
 
+    if (authMethod !== 'key') {
+        showNotification('当前认证模式不支持修改 Token', 'error');
+        return;
+    }
+
     // 验证输入
     if (!currentToken || !newToken || !confirmToken) {
         showNotification('请填写所有字段', 'error');
@@ -679,36 +696,43 @@ function changeToken() {
     }
 
     // 验证当前 Token
-    if (!devToken) {
+    if (!accessToken) {
         showNotification('未获取到 Token，请刷新页面', 'error');
         return;
     }
-    if (currentToken !== devToken) {
+    if (currentToken !== accessToken) {
         showNotification('当前 Token 错误', 'error');
         return;
     }
 
-    // 修改 Token：通过 URL 参数传递新 token
-    closeTokenModal();
-    showNotification('Token 已修改，正在重新加载...', 'success');
-    setTimeout(function() {
-        window.location.href = '/admin.html?token=' + encodeURIComponent(newToken);
-    }, 1000);
+    fetch('/api/update-secret', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+            secretValue: newToken
+        })
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(result) {
+        if (result.success) {
+            showNotification('Token 已修改成功', 'success');
+            closeTokenModal();
+            accessToken = newToken;
+            sessionStorage.setItem('authToken', newToken);
+
+            setTimeout(function() {
+                window.location.href = '/admin.html?token=' + encodeURIComponent(newToken);
+            }, 1000);
+        } else {
+            showNotification('Token 修改失败：' + (result.error || '未知错误'), 'error');
+        }
+    })
+    .catch(function(error) {
+        showNotification('Token 修改失败：' + error.message, 'error');
+    });
 }
-
-// 绑定 Token 匹配检查
-document.addEventListener('DOMContentLoaded', function() {
-    const newTokenInput = document.getElementById('newToken');
-    const confirmTokenInput = document.getElementById('confirmToken');
-
-    if (newTokenInput) {
-        newTokenInput.addEventListener('input', checkTokenMatch);
-    }
-
-    if (confirmTokenInput) {
-        confirmTokenInput.addEventListener('input', checkTokenMatch);
-    }
-});
 
 // 颜色格式转换工具
 function rgbaToHex(rgba) {
